@@ -1,0 +1,11 @@
+services:
+  proxyp:
+    build: .
+    container_name: proxyp
+    restart: unless-stopped
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
