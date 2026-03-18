@@ -5,8 +5,9 @@ RUN apt-get update \
       cpanminus \
       build-essential \
       ca-certificates \
+      libssl-dev \
  && rm -rf /var/lib/apt/lists/* \
- && cpanm --notest Plack Starman LWP::UserAgent URI URI::Escape
+ && cpanm --notest Plack Starman LWP::UserAgent LWP::Protocol::https URI URI::Escape
 
 WORKDIR /app
 COPY app.psgi .

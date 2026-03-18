@@ -3,6 +3,8 @@ services:
     build: .
     container_name: proxyp
     restart: unless-stopped
+    environment:
+      - KVSTORE_URL=http://kvstore:5000
     networks:
       - web
 

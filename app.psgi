@@ -17,6 +17,28 @@ use URI::Escape qw(uri_escape);
 use Plack::Request;
 
 my $ua = LWP::UserAgent->new(timeout => 15);
+my $kvstore_url = $ENV{KVSTORE_URL} || 'http://kvstore:5000';
+
+# In-memory token cache: token => expiry epoch (5-minute TTL)
+my %token_cache;
+my $CACHE_TTL = 300;
+
+sub verify_token {
+    my ($token) = @_;
+    my $now = time();
+    return 1 if exists $token_cache{$token} && $token_cache{$token} > $now;
+
+    # Call kvstore to validate
+    my $res = $ua->get("$kvstore_url/auth/verify",
+        'Authorization' => "Bearer $token");
+
+    if ($res->is_success) {
+        $token_cache{$token} = $now + $CACHE_TTL;
+        return 1;
+    }
+    delete $token_cache{$token};
+    return 0;
+}
 
 # Return a JSON error response (always 200 so the client JS sees the body)
 sub json_error {
@@ -32,7 +54,7 @@ sub cors_headers {
         'Content-Type'                 => 'application/json',
         'Access-Control-Allow-Origin'  => '*',
         'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers' => 'Content-Type',
+        'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
     );
 }
 
@@ -55,6 +77,14 @@ my $app = sub {
     # CORS preflight
     if ($method eq 'OPTIONS') {
         return [204, [cors_headers()], []];
+    }
+
+    # Require a valid kvstore Bearer token
+    my $auth = $env->{HTTP_AUTHORIZATION} // '';
+    my ($token) = ($auth =~ /^Bearer\s+(\S+)$/i);
+    unless ($token && verify_token($token)) {
+        warn "[proxyp] Unauthorized request\n";
+        return [401, [cors_headers()], ['{"error":"Unauthorized"}']];
     }
 
     if ($method eq 'GET') {
