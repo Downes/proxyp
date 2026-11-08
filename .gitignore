@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Runtime settings store (ENABLED/ACCESS_KEY) — bind-mounted, not source
+data/
+
 # Logs
 *.log
 

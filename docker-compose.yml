@@ -10,6 +10,9 @@ services:
         max-file: "5"
     environment:
       - KVSTORE_URL=http://kvstore:5000
+      - ADMIN_USERNAMES=downes
+    volumes:
+      - ./data:/app/data
     networks:
       - web
 
